@@ -16,7 +16,7 @@ app.use((req, res, next) => {
     next();
 });
 
-const MatchmakingHost = "127.0.0.1";
+const MatchmakingHost = "204.12.195.98";
 const MatchmakingPort = 9000;
 
 const matchmakingUDPServerDiscoveryPayload = {"servers":[{"location_id":6,"region_id":"336d1f3e-3ecb-11eb-a7dc-3b7705f20f56","ipv4":MatchmakingHost,"ipv6":"","port":MatchmakingPort}]}
@@ -46,7 +46,7 @@ app.post("//connectServer", (req, res) => {
         "userId": playerId,
         "aceId": "test",
         "gateToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30",
-        "endpoint": "127.0.0.1:6969",
+        "endpoint": "204.12.195.98:6969",
     });
 });
 
@@ -67,7 +67,7 @@ app.post("/connectServer", (req, res) => {
         "userId": playerId,
         "aceId": "test",
         "gateToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30",
-        "endpoint": "127.0.0.1:6969",
+        "endpoint": "204.12.195.98:6969",
     });
 });
 
@@ -126,6 +126,8 @@ function BuildNotification(Title, Content, Background, LanguageCode, Platform, T
   }
 }
 
+const PATCHNOTES_4012026_TEXT = "Welcome to the second round of patchnotes! Most of this is bugfix-focused, and those fixes might not even work yet! Fun!\n\nNew Features:\n- PvE Match Support! This should (theoretically) allow you to take on Hard bots, either solo or CoOp! This still has to be hosted, but we might run some at some point!\n- Randomized map selection, from all available Boundary maps!\n- Proper TDM mode setup, first to 75 kills wins, should last 10 min!\n\nBugfixes:\n- HOPEFULLY fixed the 999/999 spawn bug, though we're gonna have to confirm this in a second to see if I actually fixed it or not!\n- Fixed up the logic server a little bit to make it somewhat more reliable, shouldn't crash as often now\n\nThat's it for today, hope y'all enjoy!"
+
 const PATCHNOTES_3312026_TEXT = "Welcome to the first round of patches for Project Rebound!\nNew Features:\n- Basic emulation of the Logic Server. This allows you to see the news (hi), adjust settings, and not have to reboot the game for every match\n- In-Game Medals & Scoring! Go for those headshots :)\nBugfixes:\n- Fixed several bugs causing respawning early to softlock the game. There is still one more bug I'm working out here, but there should already be improvement here.\n- Upgraded to 128 tick servers! This might get reverted if horrific things happen, but for now enjoy 128tick Boundary!\n- Various optimizations to backend tech, should make your matches significantly more stable!"
 
 const ALPHA_TEXT = "Welcome to the Project Rebound Alpha. Please be patient and respectful to me & your fellow playtesters. Matchmaking will prioritize short queues over full matches, so feel free to coordinate in the discord to get games going."
@@ -179,7 +181,7 @@ const server = net.createServer((socket) => {
         RequestWrapper = RequestWrapperType.decode(data.subarray(4));
       }
       catch(e){
-        
+
       }
       
       if(RequestWrapper != undefined){
@@ -317,7 +319,7 @@ const server = net.createServer((socket) => {
 
         let QueryNotificationResponseType = Root.lookupType("ProjectBoundary.QueryNotificationResponse");
 
-        let QueryNotificationResponse = QueryNotificationResponseType.create({Unknown: 0, Notifications: [BuildNotification("3/31/2026 Patchnotes", PATCHNOTES_3312026_TEXT, "", LanguageCode, Platform, "America/New_York"), BuildNotification("Project Rebound Alpha", ALPHA_TEXT, "", LanguageCode, Platform, "America/New_York")]});
+        let QueryNotificationResponse = QueryNotificationResponseType.create({Unknown: 0, Notifications: [BuildNotification("4/01/2026 Patchnotes", PATCHNOTES_4012026_TEXT, "", LanguageCode, Platform, "America/New_York"), BuildNotification("3/31/2026 Patchnotes", PATCHNOTES_3312026_TEXT, "", LanguageCode, Platform, "America/New_York"), BuildNotification("Project Rebound Alpha", ALPHA_TEXT, "", LanguageCode, Platform, "America/New_York")]});
 
         let ResponseBytes = QueryNotificationResponseType.encode(QueryNotificationResponse).finish();
 
