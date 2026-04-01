@@ -19,10 +19,10 @@ app.use((req, res, next) => {
 const MatchmakingHost = "127.0.0.1";
 const MatchmakingPort = 9000;
 
-const MatchmakingServerDiscoveryPayload = {"servers":[{"locationid":6,"regionid":"336d1f3e-3ecb-11eb-a7dc-3b7705f20f56","ipv4":MatchmakingHost,"ipv6":"","port":MatchmakingPort}]}
+const matchmakingUDPServerDiscoveryPayload = {"servers":[{"location_id":6,"region_id":"336d1f3e-3ecb-11eb-a7dc-3b7705f20f56","ipv4":MatchmakingHost,"ipv6":"","port":MatchmakingPort}]}
 
 app.get("/", (req, res) => {
-  res.status(200).json(MatchmakingServerDiscoveryPayload);
+  res.status(200).json(matchmakingUDPServerDiscoveryPayload);
 });
 
 app.post("/recordClientStatus", (req, res) => {
@@ -69,6 +69,19 @@ function WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes){
   return Buffer.concat([ResponseLengthHeader, ResponsePayload]);
 }
 
+function WrapJSONMessageAndSerialize(MessageId, RPCPath, ResponseJSON){
+  let Root = protobuf.loadSync("./game/proto/Response/JSONResponseWrapper.proto");
+
+  let ResponseWrapperType = Root.lookupType("ProjectBoundary.JSONResponseWrapper");
+
+  let ResponseWrapper = ResponseWrapperType.create({MessageId: MessageId, RPCPath: RPCPath, ErrorCode: 0, JSONMessage: JSON.stringify(ResponseJSON)});
+  let ResponsePayload = ResponseWrapperType.encode(ResponseWrapper).finish();
+  let ResponseLengthHeader = Buffer.alloc(4);
+  ResponseLengthHeader.writeUint32BE(ResponsePayload.length);
+
+  return Buffer.concat([ResponseLengthHeader, ResponsePayload]);
+}
+
 const ObjectOptions = {
   Enums: String,  // enums as string names
   longs: String,  // longs as strings (requires long.js)
@@ -92,7 +105,9 @@ function BuildNotification(Title, Content, Background, LanguageCode, Platform, T
   }
 }
 
-const ALPHA_TEXT = "Welcome to the Project Rebound Alpha. Please be patient and respectful to me & your fellow playtesters. Matchmaking will prioritize short queues over full matches, so feel free to coordinate in the Boundary discord to get games going."
+const PATCHNOTES_3312026_TEXT = "Welcome to the first round of patches for Project Rebound!\nNew Features:\n- Basic emulation of the Logic Server. This allows you to see the news (hi), adjust settings, and not have to reboot the game for every match\n- In-Game Medals & Scoring! Go for those headshots :)\nBugfixes:\n- Fixed several bugs causing respawning early to softlock the game. There is still one more bug I'm working out here, but there should already be improvement here.\n- Upgraded to 128 tick servers! This might get reverted if horrific things happen, but for now enjoy 128tick Boundary!\n- Various optimizations to backend tech, should make your matches significantly more stable!"
+
+const ALPHA_TEXT = "Welcome to the Project Rebound Alpha. Please be patient and respectful to me & your fellow playtesters. Matchmaking will prioritize short queues over full matches, so feel free to coordinate in the discord to get games going."
 
 const PLAYLISTS_JSON = { "PVP": [{ "Name": "Playtest", "Title": [{ "en": "Playtest" }], "Description": [, { "en": "Playtest a very early version of Project Rebound" }], "SecondaryDescription": [{ "en": "Please report any bugs to @systemdev in the Boundary discord" }], "BigTitle": [{ "en": "Playtest" }], "BigDescription": [{ "en": "Playtest a very early version of Project Rebound" }], "PlotImage": [{ "zh": "Capture" }, { "en": "Capture" }], "LargePlotImage": [{ "zh": "Capture" }, { "en": "Capture" }], "GameModeList": ["Purge"], "bHasFilter": false, "bIsLive": true, "Priority": 1, "StartTime": 0, "StopTime": 0 }] };
 
@@ -105,7 +120,7 @@ function BuildRegionList(){
 
   let RegionList = [];
 
-  for(let Region in MatchmakingServerDiscoveryPayload.servers){
+  for(let Region in matchmakingUDPServerDiscoveryPayload.servers){
     RegionList.push({RegionId: Region.regionid, RegionName: "us-east1"});
   }
 
@@ -273,7 +288,7 @@ const server = net.createServer((socket) => {
 
         let QueryNotificationResponseType = Root.lookupType("ProjectBoundary.QueryNotificationResponse");
 
-        let QueryNotificationResponse = QueryNotificationResponseType.create({Unknown: 1, Notifications: [BuildNotification("0w0", "hewwo :3", "", LanguageCode, Platform, "America/New_York")]});
+        let QueryNotificationResponse = QueryNotificationResponseType.create({Unknown: 0, Notifications: [BuildNotification("3/31/2026 Patchnotes", PATCHNOTES_3312026_TEXT, "", LanguageCode, Platform, "America/New_York"), BuildNotification("Project Rebound Alpha", ALPHA_TEXT, "", LanguageCode, Platform, "America/New_York")]});
 
         let ResponseBytes = QueryNotificationResponseType.encode(QueryNotificationResponse).finish();
 
@@ -367,7 +382,7 @@ const server = net.createServer((socket) => {
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
       else if(RPCPath === "/matchmaking.Matchmaking/QueryUnityMatchmakingRegion"){
-        //console.log("[RECV] Query Matchmaking Region!");
+        console.log("[RECV] Query Matchmaking Region!");
 
         Root = protobuf.loadSync("./game/proto/Response/QueryMatchmakingRegionResponse.proto");
 
@@ -380,7 +395,7 @@ const server = net.createServer((socket) => {
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
       else if(RPCPath === "/matchmaking.Matchmaking/StartUnityMatchmaking"){
-        //console.log("[RECV] Start Matchmaking!");
+        console.log("[RECV] Start Matchmaking!");
 
         //console.log(data.toString("hex"));
 
@@ -403,7 +418,6 @@ const server = net.createServer((socket) => {
         let StartMatchmakingResponse = StartMatchmakingResponseType.create({StatusCode: 0});
 
         let ResponseBytes = StartMatchmakingResponseType.encode(StartMatchmakingResponse).finish();
-
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
       else if(RPCPath === "/playerdata.PlayerDataClient/GetDataStatisticsInfo"){
@@ -420,7 +434,7 @@ const server = net.createServer((socket) => {
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
       else if(RPCPath === "/matchmaking.Matchmaking/QueryPlayList"){
-        //console.log("[RECV] Query Playlists!");
+        console.log("[RECV] Query Playlists!");
 
         Root = protobuf.loadSync("./game/proto/Response/QueryPlaylistResponse.proto");
 
@@ -439,7 +453,7 @@ const server = net.createServer((socket) => {
 
         let QueryCurrencyResponseType = Root.lookupType("ProjectBoundary.QueryCurrencyResponse");
 
-        let QueryCurrencyResponse = QueryCurrencyResponseType.create({CurrencyA: 1, CurrencyB: 0, CurrencyC: 0, CurrencyD: 0, CurrencyE: 0});
+        let QueryCurrencyResponse = QueryCurrencyResponseType.create({CurrencyA: 0, CurrencyB: 0, CurrencyC: 0, CurrencyD: 0, CurrencyE: 0});
 
         let ResponseBytes = QueryCurrencyResponseType.encode(QueryCurrencyResponse).finish();
 
@@ -469,37 +483,39 @@ const server = net.createServer((socket) => {
 });
 
 let udp = require("dgram");
+const { serialize } = require('v8');
 
-const matchmakingServer = udp.createSocket('udp4');
+const matchmakingUDPServer = udp.createSocket('udp4');
 
-matchmakingServer.on("error", (error) => {
+matchmakingUDPServer.on("error", (error) => {
   console.log("[MM] Server blew up!");
   console.log(error.toString());
-  matchmakingServer.close();
+  matchmakingUDPServer.close();
 });
 
-matchmakingServer.on("close", () => {
+matchmakingUDPServer.on("close", () => {
   console.log("[MM] Shutdown!");
 });
 
-matchmakingServer.on("message", (message, info) => {
+matchmakingUDPServer.on("message", (message, info) => {
   if(message[0] == 0x59){
     console.log("[MM] Recieved a new QoS message, echoing!");
     
     let header = Buffer.alloc(3);
 
     header[0] = 0x95;
-    header[1] = 0x0b;
+    header[1] = 0x00;
 
     const resp = Buffer.concat([header, message.subarray(11)]);
 
-    matchmakingServer.send(resp, info.port, info.address, (error, bytesSend) => {
+    matchmakingUDPServer.send(resp, info.port, info.address, (error, bytesSend) => {
       console.log("Sent Info\n", {
         error: error,
         bytesSent: bytesSend,
         addr: info.address,
         port: info.port,
-        content: resp.toString("hex")
+        req: message.toString("hex"),
+        resp: resp.toString("hex")
       });
     });
   }
@@ -509,8 +525,17 @@ matchmakingServer.on("message", (message, info) => {
   }
 });
 
-matchmakingServer.on("listening", () => {
+matchmakingUDPServer.on("listening", () => {
   console.log(`mrooooow >.< - ${9000}`);
+});
+
+const matchmakingTCPServer = net.createServer((socket) => {
+  console.log('\n=== Client connected ===');
+  console.log(`From: ${socket.remoteAddress}:${socket.remotePort}\n`);
+
+  socket.on('data', (rawdata) => {
+    console.log("MOGGEDDDDDDDDD");
+  });
 });
 
 app.listen(process.env.PORT || 8000, () => {
@@ -519,12 +544,8 @@ app.listen(process.env.PORT || 8000, () => {
     server.listen(6969, () => {
       console.log(`miau >:3 - ${6969}`);
 
-      matchmakingServer.bind(9000);
-    })
+      matchmakingUDPServer.bind(9000);
 
-    /*
-    server.listen(PORT, HOST, () => {
-  console.log(`🚀 gRPC-style TCP Server listening on ${HOST}:${PORT}`);
-});
-*/
+      matchmakingTCPServer.listen(9000);
+    })
 });
