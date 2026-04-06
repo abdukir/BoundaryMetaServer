@@ -16,8 +16,9 @@ app.use((req, res, next) => {
     next();
 });
 
-const MatchmakingHost = "204.12.195.98";
-const MatchmakingPort = 9000;
+const MatchmakingHost = process.env.PUBLIC_HOST || "127.0.0.1";
+const MatchmakingPort = parseInt(process.env.MATCHMAKING_PORT || "9000");
+const GatePort = parseInt(process.env.GATE_PORT || "6969");
 
 const matchmakingUDPServerDiscoveryPayload = {"servers":[{"location_id":6,"region_id":"336d1f3e-3ecb-11eb-a7dc-3b7705f20f56","ipv4":MatchmakingHost,"ipv6":"","port":MatchmakingPort}]}
 
@@ -46,7 +47,7 @@ app.post("//connectServer", (req, res) => {
         "userId": playerId,
         "aceId": "test",
         "gateToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30",
-        "endpoint": "204.12.195.98:6969",
+        "endpoint": `${MatchmakingHost}:${GatePort}`,
     });
 });
 
@@ -67,7 +68,7 @@ app.post("/connectServer", (req, res) => {
         "userId": playerId,
         "aceId": "test",
         "gateToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30",
-        "endpoint": "204.12.195.98:6969",
+        "endpoint": `${MatchmakingHost}:${GatePort}`,
     });
 });
 
@@ -558,7 +559,7 @@ matchmakingUDPServer.on("message", (message, info) => {
 });
 
 matchmakingUDPServer.on("listening", () => {
-  console.log(`mrooooow >.< - ${9000}`);
+  console.log(`mrooooow >.< - ${MatchmakingPort}`);
 });
 
 const matchmakingTCPServer = net.createServer((socket) => {
@@ -573,11 +574,11 @@ const matchmakingTCPServer = net.createServer((socket) => {
 app.listen(process.env.PORT || 8000, () => {
     console.log(`mrow :3 - ${process.env.PORT || 8000}`);
 
-    server.listen(6969, () => {
-      console.log(`miau >:3 - ${6969}`);
+    server.listen(GatePort, () => {
+      console.log(`miau >:3 - ${GatePort}`);
 
-      matchmakingUDPServer.bind(9000);
+      matchmakingUDPServer.bind(MatchmakingPort);
 
-      matchmakingTCPServer.listen(9000);
+      matchmakingTCPServer.listen(MatchmakingPort);
     })
 });
