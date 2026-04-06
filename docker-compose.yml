@@ -5,10 +5,10 @@ services:
     ports:
       - "8000:8000"     # HTTP API
       - "6969:6969"     # TCP gate (client handshake)
-      - "9000:9000/tcp" # Matchmaking TCP
-      - "9000:9000/udp" # Matchmaking UDP (QoS ping)
+      - "${MATCHMAKING_PORT:-9001}:${MATCHMAKING_PORT:-9001}/tcp" # Matchmaking TCP
+      - "${MATCHMAKING_PORT:-9001}:${MATCHMAKING_PORT:-9001}/udp" # Matchmaking UDP (QoS ping)
     environment:
       - PUBLIC_HOST=${PUBLIC_HOST:?Set PUBLIC_HOST to your server's public IP or domain}
       - PORT=8000
       - GATE_PORT=6969
-      - MATCHMAKING_PORT=9000
+      - MATCHMAKING_PORT=${MATCHMAKING_PORT:-9001}
