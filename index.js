@@ -139,36 +139,19 @@ const TEMP_USER_ID = "76561198211631084"
 
 let PartyPresence = "InMatching";
 
-// Default loadouts per character role (from DT_CharacterDefinition.json)
-const DEFAULT_LOADOUTS = {
-  "PEACE":      { PrimaryWeapon: "PEACE_RU-AKM",       SecondWeapon: "PEACE_GSW-AR",       LeftPylon: "PEACE_ATK-HE",       RightPylon: "PEACE_TAC-EMP",      MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "PEACE_FCM-GRAPPLE" },
-  "PROBE":      { PrimaryWeapon: "PROBE_GSW-DMR",      SecondWeapon: "PROBE_GSW-AR",       LeftPylon: "PROBE_MISSILE-HIVE",  RightPylon: "PROBE_INFO-PROBE",   MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "PROBE_FCM-GRAPPLE" },
-  "SNIPER":     { PrimaryWeapon: "SNIPER_GSW-PSR",     SecondWeapon: "SNIPER_GSW-AMR",     LeftPylon: "SNIPER_TAC-EMP",      RightPylon: "SNIPER_SMK-TRI",     MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "SNIPER_FCM-GRAPPLE" },
-  "FORT":       { PrimaryWeapon: "FORT_GSW-MG",        SecondWeapon: "FORT_RU-RPK",        LeftPylon: "FORT_TAC-ADS",        RightPylon: "FORT_TAC-EMP",       MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "FORT_FCM-GRAPPLE" },
-  "SPIKE":      { PrimaryWeapon: "SPIKE_GSW-SG",       SecondWeapon: "SPIKE_GSW-CARKIT",   LeftPylon: "SPIKE_TAC-IMPLUSE",   RightPylon: "SPIKE_TAC-EMP",      MeleeWeapon: "MELEE-HAMMER", MobilityModule: "SPIKE_FCM-GRAPPLE" },
-  "FIXER":      { PrimaryWeapon: "FIXER_GSW-SG",       SecondWeapon: "FIXER_GSW-SMG",      LeftPylon: "FIXER_TAC-IMPLUSE",   RightPylon: "FIXER_TAC-EMP",      MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "FIXER_FCM-GRAPPLE" },
-  "SPIDER":     { PrimaryWeapon: "SPIDER_EVENT-TP82",   SecondWeapon: "None",              LeftPylon: "SPIDER_EMP-INF",      RightPylon: "SPIDER_EVENT-SQUID-INF", MeleeWeapon: "MELEE-KNIFE", MobilityModule: "EVENT-FCM-GRAPPLE" },
-  "BILL":       { PrimaryWeapon: "BILL_EVENT-FOP",      SecondWeapon: "None",              LeftPylon: "None",                RightPylon: "None",               MeleeWeapon: "EVENT-HAMMER", MobilityModule: "BILL_FCM-DASH" },
-  "SPIDER_HC":  { PrimaryWeapon: "FIXER_GSW-SG_HC",    SecondWeapon: "FIXER_GSW-SMG_HC",   LeftPylon: "FIXER_TAC-IMPLUSE",   RightPylon: "FIXER_TAC-EMP",      MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "FIXER_FCM-GRAPPLE" },
-  "RECON-HC":   { PrimaryWeapon: "SNIPER_GSW-PSR-HC",  SecondWeapon: "SNIPER_RU-SVD-HC",   LeftPylon: "SNIPER_INFO-SNAPSHOT", RightPylon: "PROBE_INFO-PROBE",  MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "SNIPER_FCM-GRAPPLE" },
-  "ASSAULT-HC": { PrimaryWeapon: "PEACE_RU-AKM-HC",    SecondWeapon: "SPIKE_GSW-SG-HC",    LeftPylon: "PEACE_ATK-HE",        RightPylon: "PEACE_TAC-EMP",      MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "PEACE_FCM-GRAPPLE" },
-  "SUPPORT-HC": { PrimaryWeapon: "FORT_GSW-MG-HC",     SecondWeapon: "FORT_RU-RPK-HC",     LeftPylon: "FORT_TAC-ADS",        RightPylon: "FIXER_TAC-MED",      MeleeWeapon: "MELEE-KNIFE",  MobilityModule: "FORT_FCM-GRAPPLE" },
-};
-
 function BuildRegionList(){
+  //[{RegionId: "336d1f3e-3ecb-11eb-a7dc-3b7705f20f56", RegionName: "us-east1"}]
+
   let RegionList = [];
 
-  for(let Region of matchmakingUDPServerDiscoveryPayload.servers){
-    RegionList.push({RegionId: Region.region_id, RegionName: "us-east1"});
+  for(let Region in matchmakingUDPServerDiscoveryPayload.servers){
+    RegionList.push({RegionId: Region.regionid, RegionName: "us-east1"});
   }
 
   return RegionList;
 }
 
 let fs = require("fs");
-
-// Load all item IDs at startup
-const ALL_ITEMS = Object.keys(JSON.parse(fs.readFileSync("./game/definitions/DT_ItemType.json", "utf8"))[0]["Rows"]);
 
 const server = net.createServer((socket) => {
   console.log('\n=== Client connected ===');
@@ -244,8 +227,11 @@ const server = net.createServer((socket) => {
 
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
+      /*
       else if(RPCPath === "/assets.Assets/GetPlayerArchiveV2"){
         console.log("[RECV] Player Archive V2!");
+
+        console.log(data.toString("hex"));
 
         Root = protobuf.loadSync("./game/proto/Request/GetPlayerArchiveV2Request.proto");
 
@@ -255,21 +241,19 @@ const server = net.createServer((socket) => {
 
         let PlayerArchiveV2RequestObj = PlayerArchiveV2RequestType.toObject(PlayerArchiveV2Request, ObjectOptions);
 
-        let ResponseObj = {PlayerRoleDatas: [], PlayerLevel: 50};
+        let ResponseObj = {PlayerRoleDatas: [], PlayerLevel: 0};
 
         for(let RoleID of PlayerArchiveV2RequestObj.RoleIDs){
-          console.log(`[LOADOUT] Requested role: ${RoleID}`);
-
-          let loadout = DEFAULT_LOADOUTS[RoleID] || DEFAULT_LOADOUTS["PEACE"];
+          console.log(RoleID);
 
           ResponseObj.PlayerRoleDatas.push({
             RoleID: RoleID,
-            LeftPylon: loadout.LeftPylon,
-            RightPylon: loadout.RightPylon,
-            MobilityModule: loadout.MobilityModule,
-            MeleeWeapon: loadout.MeleeWeapon,
-            PrimaryWeapon: loadout.PrimaryWeapon,
-            SecondWeapon: loadout.SecondWeapon
+            LeftPylon: "None",
+            RightPylon: "None",
+            MobilityModule: "None",
+            MeleeWeapon: "None",
+            PrimaryWeapon: "None",
+            SecondaryWeapon: "None"
           });
         }
 
@@ -283,6 +267,7 @@ const server = net.createServer((socket) => {
 
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
+      /*
       else if(RPCPath === "/assets.Assets/QueryAssets"){
         console.log("[RECV] Query Assets!");
 
@@ -291,17 +276,21 @@ const server = net.createServer((socket) => {
         let QueryAssetsResponseType = Root.lookupType("ProjectBoundary.QueryAssetsResponse");
 
         let ResponseObj = {ItemDatas: []};
-
-        for(let item of ALL_ITEMS){
-          ResponseObj.ItemDatas.push({
+        
+        for(let item of Object.keys(JSON.parse(fs.readFileSync("./game/definitions/DT_ItemType.json", "utf8"))[0]["Rows"])){
+          if(item == "PEACE_RU-AKM"){
+            ResponseObj.ItemDatas.push({
             ItemId: item,
             Unknown1: 1,
             Unknown2: 1,
             Unknown3: 1
           });
+          }
+
+          
         }
 
-        ResponseObj.ItemCount = ALL_ITEMS.length;
+        ResponseObj.ItemCount = 0;
 
         let QueryAssetsResponse = QueryAssetsResponseType.create(ResponseObj);
 
@@ -309,6 +298,7 @@ const server = net.createServer((socket) => {
 
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
+      */
       else if(RPCPath === "/notification.Notification/QueryNotification"){
         //console.log("[RECV] Query Notification!");
 
@@ -373,13 +363,10 @@ const server = net.createServer((socket) => {
         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
       }
       else if(RPCPath === "/party.party/Get"){
-        console.log("[RECV] Get Party!");
-        // Echo back the request data — game just needs a valid response
-        socket.write(data);
+        //console.log("[RECV] Get Party!");
       }
       else if(RPCPath === "/chat.chat/TextFilter"){
-        // Echo back — no filtering needed
-        socket.write(data);
+        //console.log("[RECV] Text Filter!");
       }
       else if(RPCPath === "/party.party/SetPresence"){
         //console.log("[RECV] Set Party Presence!");
